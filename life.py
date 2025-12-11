@@ -1,7 +1,5 @@
 import streamlit as st
 import openai
-import pandas as pd
-import json
 from datetime import datetime
 
 st.markdown(
@@ -55,15 +53,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-
 # --------------------------
-# OpenAI API Setup using secrets.toml
+# OpenAI API Setup
 # --------------------------
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # --------------------------
-# AI call function (updated for OpenAI >=1.0)
+# AI call function
 # --------------------------
 def call_ai(prompt, max_tokens=500):
     response = openai.chat.completions.create(
@@ -78,61 +74,43 @@ def call_ai(prompt, max_tokens=500):
     return response.choices[0].message.content
 
 # --------------------------
-# Helper functions for JSON persistence
+# Initialize session state (temporary storage)
 # --------------------------
-def load_data(file):
-    try:
-        with open(file, "r") as f:
-            return json.load(f)
-    except:
-        return {}
+if "tasks" not in st.session_state:
+    st.session_state.tasks = []
 
-def save_data(file, data):
-    with open(file, "w") as f:
-        json.dump(data, f, indent=4)
+if "meals" not in st.session_state:
+    st.session_state.meals = []
 
-# --------------------------
-# Load persistent data
-# --------------------------
-tasks_data = load_data("tasks.json")
-meals_data = load_data("meals.json")
-work_data = load_data("work.json")
-health_data = load_data("health.json")
-finance_data = load_data("finance.json")
-family_data = load_data("family.json")
-journal_data = load_data("journal.json")
+if "family" not in st.session_state:
+    st.session_state.family = []
+
+if "journal" not in st.session_state:
+    st.session_state.journal = []
 
 # --------------------------
 # Sidebar Inputs
 # --------------------------
 st.sidebar.title("Life Manager Inputs")
 
-# Add new task
 task = st.sidebar.text_input("Add a task for today:")
 if st.sidebar.button("Add Task") and task:
-    tasks_data[str(datetime.now())] = task
-    save_data("tasks.json", tasks_data)
+    st.session_state.tasks.append(task)
     st.sidebar.success("Task added!")
 
-# Add meal
 meal = st.sidebar.text_input("Add meal/recipe suggestion:")
 if st.sidebar.button("Add Meal") and meal:
-    meals_data[str(datetime.now())] = meal
-    save_data("meals.json", meals_data)
+    st.session_state.meals.append(meal)
     st.sidebar.success("Meal added!")
 
-# Add family task
 family_task = st.sidebar.text_input("Add family task / event:")
 if st.sidebar.button("Add Family Task") and family_task:
-    family_data[str(datetime.now())] = family_task
-    save_data("family.json", family_data)
+    st.session_state.family.append(family_task)
     st.sidebar.success("Family task added!")
 
-# Add journal entry
 journal_entry = st.sidebar.text_area("Write your journal entry:")
 if st.sidebar.button("Add Journal Entry") and journal_entry:
-    journal_data[str(datetime.now())] = journal_entry
-    save_data("journal.json", journal_data)
+    st.session_state.journal.append(journal_entry)
     st.sidebar.success("Journal entry saved!")
 
 # --------------------------
@@ -145,7 +123,7 @@ tabs = st.tabs(["Today Plan","Cooking & Meals","Work Sessions","Health & Fitness
 with tabs[0]:
     st.header("Today’s Plan")
     if st.button("Generate Today Plan"):
-        plan_prompt = f"Create a structured daily schedule including tasks: {list(tasks_data.values())}, family tasks: {list(family_data.values())}, meals: {list(meals_data.values())}, and work/focus sessions."
+        plan_prompt = f"Create a structured daily schedule including tasks: {st.session_state.tasks}, family tasks: {st.session_state.family}, meals: {st.session_state.meals}, and work/focus sessions."
         today_plan = call_ai(plan_prompt)
         st.text(today_plan)
 
@@ -153,7 +131,7 @@ with tabs[0]:
 with tabs[1]:
     st.header("Meal Suggestions & Grocery List")
     if st.button("Generate Meal Plan"):
-        meal_prompt = f"Generate a weekly meal plan based on meals I saved: {list(meals_data.values())}. Include grocery list and meal times."
+        meal_prompt = f"Generate a weekly meal plan based on meals I saved: {st.session_state.meals}. Include grocery list and meal times."
         meal_plan = call_ai(meal_prompt)
         st.text(meal_plan)
 
@@ -161,7 +139,7 @@ with tabs[1]:
 with tabs[2]:
     st.header("Work & Focus Sessions")
     if st.button("Generate Work Schedule"):
-        work_prompt = f"Create optimized work/focus sessions for today based on tasks: {list(tasks_data.values())}."
+        work_prompt = f"Create optimized work/focus sessions for today based on tasks: {st.session_state.tasks}."
         work_schedule = call_ai(work_prompt)
         st.text(work_schedule)
 
@@ -169,7 +147,7 @@ with tabs[2]:
 with tabs[3]:
     st.header("Health & Fitness")
     if st.button("Generate Health Plan"):
-        health_prompt = f"Generate a daily fitness routine, sleep advice and hydration plan for an adult, considering tasks: {list(tasks_data.values())}."
+        health_prompt = f"Generate a daily fitness routine, sleep advice and hydration plan for an adult, considering tasks: {st.session_state.tasks}."
         health_plan = call_ai(health_prompt)
         st.text(health_plan)
 
@@ -177,7 +155,7 @@ with tabs[3]:
 with tabs[4]:
     st.header("Finance & Budget")
     if st.button("Generate Finance Advice"):
-        finance_prompt = f"Provide budget and expense advice based on transactions: {finance_data}."
+        finance_prompt = "Provide budget and expense advice based on example financial data."
         finance_plan = call_ai(finance_prompt)
         st.text(finance_plan)
 
@@ -185,7 +163,7 @@ with tabs[4]:
 with tabs[5]:
     st.header("Family & Household Tasks")
     if st.button("Organize Family Tasks"):
-        family_prompt = f"Organize family tasks and home responsibilities: {list(family_data.values())}."
+        family_prompt = f"Organize family tasks and home responsibilities: {st.session_state.family}."
         family_plan = call_ai(family_prompt)
         st.text(family_plan)
 
